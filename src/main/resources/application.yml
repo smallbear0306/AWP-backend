@@ -1,0 +1,34 @@
+server:
+  port: 8080
+
+spring:
+  application:
+    name: awp-backend
+  datasource:
+    driver-class-name: com.mysql.cj.jdbc.Driver
+    url: jdbc:mysql://localhost:3306/awp?useUnicode=true&characterEncoding=utf8&serverTimezone=Asia/Shanghai&useSSL=false&allowPublicKeyRetrieval=true
+    username: root
+    password: root
+    hikari:
+      maximum-pool-size: 10
+      minimum-idle: 2
+
+# MyBatis 配置
+mybatis:
+  mapper-locations: classpath:mapper/*.xml
+  type-aliases-package: com.awp.entity
+  configuration:
+    # 下划线字段自动映射为驼峰属性（record_date -> recordDate）
+    map-underscore-to-camel-case: true
+
+# 自定义配置
+awp:
+  jwt:
+    # 生产环境请改为更长的随机密钥，并通过环境变量注入
+    secret: awp-default-jwt-secret-key-please-change-in-production-1234567890
+    # token 有效期（毫秒），默认 7 天
+    expire-millis: 604800000
+
+logging:
+  level:
+    com.awp.mapper: debug

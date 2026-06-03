@@ -1,0 +1,53 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "https://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.awp.mapper.StatMapper">
+
+    <sql id="dateRange">
+        <if test="startDate != null">
+            AND record_date &gt;= #{startDate}
+        </if>
+        <if test="endDate != null">
+            AND record_date &lt;= #{endDate}
+        </if>
+    </sql>
+
+    <select id="summary" resultType="com.awp.dto.SummaryVO">
+        SELECT
+            COALESCE(SUM(CASE WHEN type = 1 THEN amount ELSE 0 END), 0) AS income,
+            COALESCE(SUM(CASE WHEN type = 0 THEN amount ELSE 0 END), 0) AS expense
+        FROM record
+        WHERE user_id = #{userId}
+        <include refid="dateRange"/>
+    </select>
+
+    <select id="categoryStat" resultType="com.awp.dto.CategoryStatVO">
+        SELECT r.category_id AS categoryId,
+               c.name AS categoryName,
+               COALESCE(SUM(r.amount), 0) AS amount
+        FROM record r
+        LEFT JOIN category c ON r.category_id = c.id
+        WHERE r.user_id = #{userId}
+          AND r.type = #{type}
+        <if test="startDate != null">
+            AND r.record_date &gt;= #{startDate}
+        </if>
+        <if test="endDate != null">
+            AND r.record_date &lt;= #{endDate}
+        </if>
+        GROUP BY r.category_id, c.name
+        ORDER BY amount DESC
+    </select>
+
+    <select id="trend" resultType="com.awp.dto.TrendVO">
+        SELECT DATE_FORMAT(record_date, '%Y-%m') AS month,
+               COALESCE(SUM(CASE WHEN type = 1 THEN amount ELSE 0 END), 0) AS income,
+               COALESCE(SUM(CASE WHEN type = 0 THEN amount ELSE 0 END), 0) AS expense
+        FROM record
+        WHERE user_id = #{userId}
+        <include refid="dateRange"/>
+        GROUP BY DATE_FORMAT(record_date, '%Y-%m')
+        ORDER BY month ASC
+    </select>
+
+</mapper>

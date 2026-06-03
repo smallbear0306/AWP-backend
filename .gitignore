@@ -24,3 +24,6 @@ Thumbs.db
 
 # Local config (don't commit secrets)
 src/main/resources/application-local.yml
+
+# 前端构建产物（由 deploy-local.ps1 从 AWP-frontend 拷入，不入库）
+src/main/resources/static/

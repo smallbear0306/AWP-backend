@@ -1,0 +1,62 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "https://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.awp.mapper.RecordMapper">
+
+    <!-- 公共过滤条件 -->
+    <sql id="filter">
+        WHERE r.user_id = #{userId}
+        <if test="q.type != null">
+            AND r.type = #{q.type}
+        </if>
+        <if test="q.categoryId != null">
+            AND r.category_id = #{q.categoryId}
+        </if>
+        <if test="q.startDate != null">
+            AND r.record_date &gt;= #{q.startDate}
+        </if>
+        <if test="q.endDate != null">
+            AND r.record_date &lt;= #{q.endDate}
+        </if>
+    </sql>
+
+    <select id="page" resultType="com.awp.dto.RecordVO">
+        SELECT r.id, r.category_id, c.name AS category_name, r.type,
+               r.amount, r.remark, r.record_date, r.create_time
+        FROM record r
+        LEFT JOIN category c ON r.category_id = c.id
+        <include refid="filter"/>
+        ORDER BY r.record_date DESC, r.id DESC
+        LIMIT #{q.offset}, #{q.limit}
+    </select>
+
+    <select id="count" resultType="long">
+        SELECT COUNT(*)
+        FROM record r
+        <include refid="filter"/>
+    </select>
+
+    <select id="findByIdAndUser" resultType="com.awp.entity.Record">
+        SELECT id, user_id, category_id, type, amount, remark, record_date, create_time
+        FROM record
+        WHERE id = #{id} AND user_id = #{userId}
+    </select>
+
+    <insert id="insert" parameterType="com.awp.entity.Record"
+            useGeneratedKeys="true" keyProperty="id">
+        INSERT INTO record (user_id, category_id, type, amount, remark, record_date, create_time)
+        VALUES (#{userId}, #{categoryId}, #{type}, #{amount}, #{remark}, #{recordDate}, NOW())
+    </insert>
+
+    <update id="update" parameterType="com.awp.entity.Record">
+        UPDATE record
+        SET category_id = #{categoryId}, type = #{type}, amount = #{amount},
+            remark = #{remark}, record_date = #{recordDate}
+        WHERE id = #{id} AND user_id = #{userId}
+    </update>
+
+    <delete id="deleteByIdAndUser">
+        DELETE FROM record WHERE id = #{id} AND user_id = #{userId}
+    </delete>
+
+</mapper>

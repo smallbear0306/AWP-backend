@@ -12,6 +12,9 @@
         <if test="q.categoryId != null">
             AND r.category_id = #{q.categoryId}
         </if>
+        <if test="q.parentCategoryId != null">
+            AND r.category_id IN (SELECT id FROM category WHERE parent_id = #{q.parentCategoryId})
+        </if>
         <if test="q.startDate != null">
             AND r.record_date &gt;= #{q.startDate}
         </if>
@@ -21,10 +24,12 @@
     </sql>
 
     <select id="page" resultType="com.awp.dto.RecordVO">
-        SELECT r.id, r.category_id, c.name AS category_name, r.type,
-               r.amount, r.remark, r.record_date, r.create_time
+        SELECT r.id, r.category_id, c.name AS category_name,
+               c.parent_id AS parent_category_id, p.name AS parent_category_name,
+               r.type, r.amount, r.remark, r.record_date, r.create_time
         FROM record r
         LEFT JOIN category c ON r.category_id = c.id
+        LEFT JOIN category p ON c.parent_id = p.id
         <include refid="filter"/>
         ORDER BY r.record_date DESC, r.id DESC
         LIMIT #{q.offset}, #{q.limit}

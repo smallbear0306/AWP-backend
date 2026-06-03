@@ -12,7 +12,8 @@ public class RecordQuery {
     private Integer page = 1;
     private Integer size = 10;
     private Integer type;          // 0 支出 / 1 收入
-    private Long categoryId;
+    private Long categoryId;        // 按二级分类(叶子)精确过滤
+    private Long parentCategoryId;  // 按一级分类过滤（含其下全部二级）
     private LocalDate startDate;    // 起始日期（含）
     private LocalDate endDate;      // 结束日期（含）
 

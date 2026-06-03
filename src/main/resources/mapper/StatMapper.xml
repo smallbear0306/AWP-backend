@@ -21,12 +21,14 @@
         <include refid="dateRange"/>
     </select>
 
+    <!-- 按一级分类聚合金额（账单挂在二级，向上归到其一级） -->
     <select id="categoryStat" resultType="com.awp.dto.CategoryStatVO">
-        SELECT r.category_id AS categoryId,
-               c.name AS categoryName,
+        SELECT p.id AS categoryId,
+               p.name AS categoryName,
                COALESCE(SUM(r.amount), 0) AS amount
         FROM record r
         LEFT JOIN category c ON r.category_id = c.id
+        LEFT JOIN category p ON c.parent_id = p.id
         WHERE r.user_id = #{userId}
           AND r.type = #{type}
         <if test="startDate != null">
@@ -35,7 +37,7 @@
         <if test="endDate != null">
             AND r.record_date &lt;= #{endDate}
         </if>
-        GROUP BY r.category_id, c.name
+        GROUP BY p.id, p.name
         ORDER BY amount DESC
     </select>
 

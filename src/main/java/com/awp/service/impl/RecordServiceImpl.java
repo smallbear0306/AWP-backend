@@ -41,7 +41,7 @@ public class RecordServiceImpl implements RecordService {
     @Override
     public void create(RecordDTO dto) {
         Long userId = UserContext.getUserId();
-        validateCategory(dto.getCategoryId(), userId);
+        validateCategory(dto.getCategoryId(), dto.getType(), userId);
         Record record = new Record();
         record.setUserId(userId);
         copy(dto, record);
@@ -54,7 +54,7 @@ public class RecordServiceImpl implements RecordService {
         if (recordMapper.findByIdAndUser(id, userId) == null) {
             throw new BusinessException(ResultCode.NOT_FOUND);
         }
-        validateCategory(dto.getCategoryId(), userId);
+        validateCategory(dto.getCategoryId(), dto.getType(), userId);
         Record record = new Record();
         record.setId(id);
         record.setUserId(userId);
@@ -71,11 +71,17 @@ public class RecordServiceImpl implements RecordService {
         recordMapper.deleteByIdAndUser(id, userId);
     }
 
-    /** 校验分类归属当前用户 */
-    private void validateCategory(Long categoryId, Long userId) {
-        Category category = categoryMapper.findByIdAndUser(categoryId, userId);
+    /** 校验分类：当前用户可见、必须是二级(叶子)、收支类型与账单一致 */
+    private void validateCategory(Long categoryId, Integer type, Long userId) {
+        Category category = categoryMapper.findVisible(categoryId, userId);
         if (category == null) {
             throw new BusinessException(ResultCode.PARAM_ERROR.getCode(), "分类不存在");
+        }
+        if (category.getParentId() == null) {
+            throw new BusinessException(ResultCode.PARAM_ERROR.getCode(), "请选择具体的二级分类");
+        }
+        if (!category.getType().equals(type)) {
+            throw new BusinessException(ResultCode.PARAM_ERROR.getCode(), "分类与收支类型不一致");
         }
     }
 

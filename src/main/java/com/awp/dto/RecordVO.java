@@ -7,13 +7,15 @@ import java.time.LocalDate;
 import java.time.LocalDateTime;
 
 /**
- * 账单展示对象：在账单基础上带上分类名称。
+ * 账单展示对象：在账单基础上带上一级/二级分类名称。
  */
 @Data
 public class RecordVO {
     private Long id;
-    private Long categoryId;
-    private String categoryName;
+    private Long categoryId;             // 二级分类(叶子) id
+    private String categoryName;         // 二级分类名
+    private Long parentCategoryId;       // 一级分类 id
+    private String parentCategoryName;   // 一级分类名
     private Integer type;
     private BigDecimal amount;
     private String remark;

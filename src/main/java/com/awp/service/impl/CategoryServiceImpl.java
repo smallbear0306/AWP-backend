@@ -91,41 +91,42 @@ public class CategoryServiceImpl implements CategoryService {
     @Override
     public void update(Long id, CategoryDTO dto) {
         Long userId = UserContext.getUserId();
-        requireOwn(id, userId);
+        requireVisible(id, userId);
         Category category = new Category();
         category.setId(id);
-        category.setUserId(userId);
         category.setName(dto.getName());
         category.setDescription(dto.getDescription());
         category.setIcon(dto.getIcon());
-        categoryMapper.update(category);
+        categoryMapper.updateById(category);
     }
 
     @Override
     public void delete(Long id) {
         Long userId = UserContext.getUserId();
-        Category own = requireOwn(id, userId);
-        if (own.getParentId() == null && categoryMapper.countChildren(id) > 0) {
-            throw new BusinessException(ResultCode.PARAM_ERROR.getCode(), "该一级分类下存在二级分类，无法删除");
+        Category cat = requireVisible(id, userId);
+        if (cat.getParentId() == null) {
+            // 一级：连同其下二级一并删除；若子树下有账单则禁止
+            if (categoryMapper.countRecordsByParent(id) > 0) {
+                throw new BusinessException(ResultCode.PARAM_ERROR.getCode(), "该一级分类下存在账单，请先处理账单再删除");
+            }
+            categoryMapper.deleteChildren(id);
+            categoryMapper.deleteById(id);
+        } else {
+            // 二级：有账单则禁止
+            if (categoryMapper.countRecordsByLeaf(id) > 0) {
+                throw new BusinessException(ResultCode.PARAM_ERROR.getCode(), "该分类下存在账单，请先处理账单再删除");
+            }
+            categoryMapper.deleteById(id);
         }
-        if (categoryMapper.countRecords(id, userId) > 0) {
-            throw new BusinessException(ResultCode.PARAM_ERROR.getCode(), "该分类下存在账单，无法删除");
-        }
-        categoryMapper.deleteByIdAndUser(id, userId);
     }
 
-    /** 校验该分类属于当前用户（预设 user_id=0 不属于任何用户，会校验失败） */
-    private Category requireOwn(Long id, Long userId) {
-        Category own = categoryMapper.findOwn(id, userId);
-        if (own == null) {
-            // 预设或不存在
-            Category visible = categoryMapper.findVisible(id, userId);
-            if (visible != null && visible.getUserId() == 0L) {
-                throw new BusinessException(ResultCode.PARAM_ERROR.getCode(), "系统预设分类不可修改或删除");
-            }
+    /** 校验该分类对当前用户可见（预设或自有）；不存在则报错 */
+    private Category requireVisible(Long id, Long userId) {
+        Category cat = categoryMapper.findVisible(id, userId);
+        if (cat == null) {
             throw new BusinessException(ResultCode.NOT_FOUND);
         }
-        return own;
+        return cat;
     }
 
     private CategoryNode toNode(Category c) {

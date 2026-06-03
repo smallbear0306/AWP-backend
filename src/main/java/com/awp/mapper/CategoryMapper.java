@@ -16,18 +16,20 @@ public interface CategoryMapper {
     /** 按 id 查询当前用户可见的分类（预设或自有） */
     Category findVisible(@Param("id") Long id, @Param("userId") Long userId);
 
-    /** 按 id 查询当前用户自有的分类（仅 user_id=当前，用于改/删归属校验） */
-    Category findOwn(@Param("id") Long id, @Param("userId") Long userId);
-
     int insert(Category category);
 
-    int update(Category category);
+    /** 按 id 更新（名称/说明/图标） */
+    int updateById(Category category);
 
-    int deleteByIdAndUser(@Param("id") Long id, @Param("userId") Long userId);
+    /** 按 id 删除单个分类 */
+    int deleteById(@Param("id") Long id);
 
-    /** 统计某分类的子分类数（删一级前校验） */
-    int countChildren(@Param("parentId") Long parentId);
+    /** 删除某一级下的全部二级分类 */
+    int deleteChildren(@Param("parentId") Long parentId);
 
-    /** 统计某分类下当前用户的账单数（删二级前校验） */
-    int countRecords(@Param("categoryId") Long categoryId, @Param("userId") Long userId);
+    /** 统计某二级分类下的账单数（全部用户，删除前校验避免孤儿） */
+    int countRecordsByLeaf(@Param("categoryId") Long categoryId);
+
+    /** 统计某一级下全部二级分类的账单数（全部用户） */
+    int countRecordsByParent(@Param("parentId") Long parentId);
 }

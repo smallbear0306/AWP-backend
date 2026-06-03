@@ -21,35 +21,33 @@
         WHERE id = #{id} AND user_id IN (0, #{userId})
     </select>
 
-    <select id="findOwn" resultType="com.awp.entity.Category">
-        SELECT <include refid="cols"/>
-        FROM category
-        WHERE id = #{id} AND user_id = #{userId}
-    </select>
-
     <insert id="insert" parameterType="com.awp.entity.Category"
             useGeneratedKeys="true" keyProperty="id">
         INSERT INTO category (user_id, parent_id, type, name, description, icon, sort_order)
         VALUES (#{userId}, #{parentId}, #{type}, #{name}, #{description}, #{icon}, #{sortOrder})
     </insert>
 
-    <update id="update" parameterType="com.awp.entity.Category">
+    <update id="updateById" parameterType="com.awp.entity.Category">
         UPDATE category
         SET name = #{name}, description = #{description}, icon = #{icon}
-        WHERE id = #{id} AND user_id = #{userId}
+        WHERE id = #{id}
     </update>
 
-    <delete id="deleteByIdAndUser">
-        DELETE FROM category WHERE id = #{id} AND user_id = #{userId}
+    <delete id="deleteById">
+        DELETE FROM category WHERE id = #{id}
     </delete>
 
-    <select id="countChildren" resultType="int">
-        SELECT COUNT(*) FROM category WHERE parent_id = #{parentId}
+    <delete id="deleteChildren">
+        DELETE FROM category WHERE parent_id = #{parentId}
+    </delete>
+
+    <select id="countRecordsByLeaf" resultType="int">
+        SELECT COUNT(*) FROM record WHERE category_id = #{categoryId}
     </select>
 
-    <select id="countRecords" resultType="int">
+    <select id="countRecordsByParent" resultType="int">
         SELECT COUNT(*) FROM record
-        WHERE category_id = #{categoryId} AND user_id = #{userId}
+        WHERE category_id IN (SELECT id FROM category WHERE parent_id = #{parentId})
     </select>
 
 </mapper>

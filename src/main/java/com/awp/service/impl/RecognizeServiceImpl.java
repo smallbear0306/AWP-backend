@@ -107,9 +107,11 @@ public class RecognizeServiceImpl implements RecognizeService {
                 + "收入:\n" + income
                 + "规则：\n"
                 + "- type: \"支出\" 或 \"收入\"\n"
-                + "- amount: 数字金额(元)，取交易主金额，正数\n"
-                + "- date: \"YYYY-MM-DD\"，取支付/交易时间的日期；若无明确日期但有订单编号且形如\"20260602-xxxxxx\"，则取\"-\"前的8位作为年月日\n"
-                + "- counterparty: 收款方/商家名称（不要填付款人本人）\n"
+                + "- amount: 实际影响钱包的金额(元,正数)。一般=交易主金额\n"
+                + "- gross / fee: 仅当截图为含税收入(个税/工资/劳务报酬，含\"收入\"且含\"已申报税额/纳税额\")时填：gross=申报收入、fee=已申报税额；其余场景两者都填 null。此时 amount 取 gross−fee\n"
+                + "  注意：减除费用、专项扣除、免税收入、费用 等仅用于计税，不要从金额里扣除\n"
+                + "- date: \"YYYY-MM-DD\"，取支付/交易发生的日期；个税/纳税明细类优先取【申报日期】(不要取税款所属期)；若无明确日期但有订单编号且形如\"20260602-xxxxxx\"，则取\"-\"前的8位作为年月日\n"
+                + "- counterparty: 收款方/商家/扣缴义务人名称（不要填付款人本人）\n"
                 + "- channel: 支付渠道(支付宝/微信/银行/花呗/零钱等)\n"
                 + "- category_l1 / category_l2: 必须从上面给定清单中选；选不到填 null\n"
                 + "- summary: 一句话说明(商品/用途)\n"
@@ -135,13 +137,15 @@ public class RecognizeServiceImpl implements RecognizeService {
         }
         r.setType(type);
 
-        // amount
-        String amt = text(j, "amount");
-        if (amt != null) {
-            try {
-                r.setAmount(new BigDecimal(amt.replaceAll("[^0-9.\\-]", "")));
-            } catch (Exception ignore) {
-            }
+        // amount：含税收入场景由后端做减法(gross-fee)，确定性，不依赖模型算术
+        BigDecimal amount = num(j, "amount");
+        BigDecimal gross = num(j, "gross");
+        BigDecimal fee = num(j, "fee");
+        if (gross != null && fee != null) {
+            amount = gross.subtract(fee);
+        }
+        if (amount != null) {
+            r.setAmount(amount.abs());
         }
         r.setRecordDate(text(j, "date"));
         r.setCategoryL1(text(j, "category_l1"));
@@ -189,5 +193,16 @@ public class RecognizeServiceImpl implements RecognizeService {
         if (v == null || v.isNull()) return null;
         String s = v.asText();
         return (s == null || s.isBlank() || "null".equalsIgnoreCase(s)) ? null : s;
+    }
+
+    /** 解析数字字段为 BigDecimal，无效返回 null */
+    private BigDecimal num(JsonNode node, String field) {
+        String s = text(node, field);
+        if (s == null) return null;
+        try {
+            return new BigDecimal(s.replaceAll("[^0-9.\\-]", ""));
+        } catch (Exception e) {
+            return null;
+        }
     }
 }

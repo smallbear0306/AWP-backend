@@ -22,6 +22,8 @@ public class AccountDebtDTO {
 
     private Integer type;     // 0 一次性 / 1 按月还款，默认 0
 
+    private Integer months;   // 按月还款的贷款月数
+
     private Integer status;   // 0 未还款 / 1 已还款 / 2 已逾期，默认 0
 
     private LocalDate dueDate;

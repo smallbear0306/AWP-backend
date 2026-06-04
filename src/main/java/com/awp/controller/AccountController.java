@@ -3,6 +3,7 @@ package com.awp.controller;
 import com.awp.common.BusinessException;
 import com.awp.common.Result;
 import com.awp.common.ResultCode;
+import com.awp.dto.AccountBatchDTO;
 import com.awp.dto.AccountDTO;
 import com.awp.dto.AccountRecognizeResult;
 import com.awp.dto.AccountVO;
@@ -50,6 +51,13 @@ public class AccountController {
     @PostMapping
     public Result<Account> create(@Valid @RequestBody AccountDTO dto) {
         return Result.success(accountService.create(dto));
+    }
+
+    /** 批量创建账户（截图识别多个后一起创建） */
+    @PostMapping("/batch")
+    public Result<Void> batch(@Valid @RequestBody AccountBatchDTO dto) {
+        accountService.createBatch(dto.getAccounts());
+        return Result.success();
     }
 
     @PutMapping("/{id}")

@@ -10,6 +10,7 @@ import com.awp.mapper.AccountDebtMapper;
 import com.awp.mapper.AccountMapper;
 import com.awp.service.AccountService;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
 import java.util.ArrayList;
@@ -54,6 +55,14 @@ public class AccountServiceImpl implements AccountService {
         a.setSortOrder(0);
         accountMapper.insert(a);
         return a;
+    }
+
+    @Override
+    @Transactional
+    public void createBatch(List<AccountDTO> dtos) {
+        for (AccountDTO dto : dtos) {
+            create(dto);
+        }
     }
 
     @Override

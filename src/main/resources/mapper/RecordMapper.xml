@@ -9,6 +9,9 @@
         <if test="q.type != null">
             AND r.type = #{q.type}
         </if>
+        <if test="q.accountId != null">
+            AND r.account_id = #{q.accountId}
+        </if>
         <if test="q.categoryId != null">
             AND r.category_id = #{q.categoryId}
         </if>
@@ -33,7 +36,10 @@
         LEFT JOIN category p ON c.parent_id = p.id
         LEFT JOIN account ac ON r.account_id = ac.id
         <include refid="filter"/>
-        ORDER BY r.record_date DESC, r.id DESC
+        <choose>
+            <when test="q.sort == 'amount'">ORDER BY r.amount DESC, r.id DESC</when>
+            <otherwise>ORDER BY r.record_date DESC, r.id DESC</otherwise>
+        </choose>
         LIMIT #{q.offset}, #{q.limit}
     </select>
 

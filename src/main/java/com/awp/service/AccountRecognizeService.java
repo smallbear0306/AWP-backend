@@ -13,6 +13,8 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 
 import java.math.BigDecimal;
+import java.util.ArrayList;
+import java.util.List;
 
 /**
  * 账户截图识别：识别账户类型/银行/储蓄or信用/当前余额，用于新建账户或划账预填。
@@ -51,12 +53,12 @@ public class AccountRecognizeService {
     }
 
     private String prompt() {
-        return "识别这张账户/钱包/银行卡/余额截图，判断它属于哪种账户并读出当前余额。严格只输出 JSON：\n"
+        return "识别这张账户/钱包/银行卡/余额截图。一张图可能含【多个账户】(如银行总览页的多张卡、可用余额与理财余额、不同子账户)，请分别列出，不要合并相加。严格只输出 JSON 对象 {\"accounts\":[ ... ]}，每个元素字段：\n"
                 + "type: 从[储蓄卡,信用卡,支付宝余额,微信余额,花呗,余额宝,零钱通,理财账户,饭卡,现金,其他]中选最匹配的一个\n"
-                + "bank: 若为银行卡，填银行名(如 招商银行)，否则 null\n"
-                + "kind: 0 表示储蓄类(借记卡/各类余额/余额宝/零钱通/理财)，1 表示信用类(信用卡/花呗)\n"
-                + "balance: 当前可用余额(数字,正数，逐位读准)；若是花呗/信用卡且只显示待还款，则 balance 填 0\n"
-                + "name: 给该账户起个简短名字(如 招商银行储蓄卡、支付宝余额、花呗)\n"
+                + "bank: 若为银行卡/银行理财，填银行名(如 招商银行、浦发银行)，否则 null\n"
+                + "kind: 0 储蓄类(借记卡/各类余额/余额宝/零钱通/理财)，1 信用类(信用卡/花呗)\n"
+                + "balance: 该账户当前余额(数字,正数，逐位读准)；花呗/信用卡只显示待还款则填 0\n"
+                + "name: 简短账户名(如 浦发银行储蓄卡、浦发灵活+理财、支付宝余额)\n"
                 + "不要输出多余文字、不要 markdown 围栏。";
     }
 
@@ -67,19 +69,29 @@ public class AccountRecognizeService {
         if (s < 0 || e <= s) {
             throw new BusinessException(ResultCode.SYSTEM_ERROR.getCode(), "模型返回非 JSON");
         }
-        JsonNode j = mapper.readTree(txt.substring(s, e + 1));
-        r.setName(text(j, "name"));
-        r.setType(text(j, "type"));
-        r.setBank(text(j, "bank"));
-        String kind = text(j, "kind");
-        r.setKind(kind != null && kind.contains("1") ? 1 : 0);
-        String bal = text(j, "balance");
-        if (bal != null) {
-            try {
-                r.setBalance(new BigDecimal(bal.replaceAll("[^0-9.\\-]", "")).abs());
-            } catch (Exception ignore) {
-            }
+        JsonNode root = mapper.readTree(txt.substring(s, e + 1));
+        JsonNode arr = root.path("accounts");
+        if (!arr.isArray() || arr.isEmpty()) {
+            throw new BusinessException(ResultCode.SYSTEM_ERROR.getCode(), "模型未返回账户");
         }
+        List<AccountRecognizeResult.Item> items = new ArrayList<>();
+        for (JsonNode j : arr) {
+            AccountRecognizeResult.Item it = new AccountRecognizeResult.Item();
+            it.setName(text(j, "name"));
+            it.setType(text(j, "type"));
+            it.setBank(text(j, "bank"));
+            String kind = text(j, "kind");
+            it.setKind(kind != null && kind.contains("1") ? 1 : 0);
+            String bal = text(j, "balance");
+            if (bal != null) {
+                try {
+                    it.setBalance(new BigDecimal(bal.replaceAll("[^0-9.\\-]", "")).abs());
+                } catch (Exception ignore) {
+                }
+            }
+            items.add(it);
+        }
+        r.setItems(items);
     }
 
     private String text(JsonNode node, String field) {

@@ -3,7 +3,7 @@
         "https://mybatis.org/dtd/mybatis-3-mapper.dtd">
 <mapper namespace="com.awp.mapper.AccountDebtMapper">
 
-    <sql id="cols">id, user_id, account_id, name, amount, type, status, due_date, remark, create_time</sql>
+    <sql id="cols">id, user_id, account_id, name, amount, type, months, status, due_date, remark, create_time</sql>
 
     <select id="listByAccount" resultType="com.awp.entity.AccountDebt">
         SELECT <include refid="cols"/>
@@ -20,13 +20,13 @@
 
     <insert id="insert" parameterType="com.awp.entity.AccountDebt"
             useGeneratedKeys="true" keyProperty="id">
-        INSERT INTO account_debt (user_id, account_id, name, amount, type, status, due_date, remark, create_time)
-        VALUES (#{userId}, #{accountId}, #{name}, #{amount}, #{type}, #{status}, #{dueDate}, #{remark}, NOW())
+        INSERT INTO account_debt (user_id, account_id, name, amount, type, months, status, due_date, remark, create_time)
+        VALUES (#{userId}, #{accountId}, #{name}, #{amount}, #{type}, #{months}, #{status}, #{dueDate}, #{remark}, NOW())
     </insert>
 
     <update id="update" parameterType="com.awp.entity.AccountDebt">
         UPDATE account_debt
-        SET name = #{name}, amount = #{amount}, type = #{type}, status = #{status},
+        SET name = #{name}, amount = #{amount}, type = #{type}, months = #{months}, status = #{status},
             due_date = #{dueDate}, remark = #{remark}
         WHERE id = #{id} AND user_id = #{userId}
     </update>

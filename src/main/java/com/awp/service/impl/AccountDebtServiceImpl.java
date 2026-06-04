@@ -43,6 +43,7 @@ public class AccountDebtServiceImpl implements AccountDebtService {
         d.setName(dto.getName());
         d.setAmount(dto.getAmount());
         d.setType(dto.getType() == null ? 0 : dto.getType());
+        d.setMonths(dto.getMonths());
         d.setStatus(dto.getStatus() == null ? 0 : dto.getStatus());
         d.setDueDate(dto.getDueDate());
         d.setRemark(dto.getRemark());
@@ -60,6 +61,7 @@ public class AccountDebtServiceImpl implements AccountDebtService {
         d.setName(dto.getName());
         d.setAmount(dto.getAmount());
         d.setType(dto.getType() == null ? d.getType() : dto.getType());
+        d.setMonths(dto.getMonths());
         d.setStatus(dto.getStatus() == null ? d.getStatus() : dto.getStatus());
         d.setDueDate(dto.getDueDate());
         d.setRemark(dto.getRemark());

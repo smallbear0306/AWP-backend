@@ -58,6 +58,7 @@ CREATE TABLE IF NOT EXISTS `account_debt` (
     `name`        VARCHAR(100)  DEFAULT NULL COMMENT '负债名/说明',
     `amount`      DECIMAL(12,2) NOT NULL COMMENT '金额',
     `type`        TINYINT       NOT NULL DEFAULT 0 COMMENT '0 一次性 / 1 按月还款',
+    `months`      INT           DEFAULT NULL COMMENT '按月还款的贷款月数',
     `status`      TINYINT       NOT NULL DEFAULT 0 COMMENT '0 未还款 / 1 已还款 / 2 已逾期',
     `due_date`    DATE          DEFAULT NULL COMMENT '到期日',
     `remark`      VARCHAR(255)  DEFAULT NULL,

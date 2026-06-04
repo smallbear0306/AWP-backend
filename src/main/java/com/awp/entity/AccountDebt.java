@@ -17,6 +17,7 @@ public class AccountDebt {
     private String name;
     private BigDecimal amount;
     private Integer type;
+    private Integer months;     // 按月还款的贷款月数
     private Integer status;
     private LocalDate dueDate;
     private String remark;

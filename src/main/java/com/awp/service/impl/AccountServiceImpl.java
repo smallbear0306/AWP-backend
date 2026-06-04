@@ -6,6 +6,7 @@ import com.awp.common.UserContext;
 import com.awp.dto.AccountDTO;
 import com.awp.dto.AccountVO;
 import com.awp.entity.Account;
+import com.awp.mapper.AccountDebtMapper;
 import com.awp.mapper.AccountMapper;
 import com.awp.service.AccountService;
 import org.springframework.stereotype.Service;
@@ -22,9 +23,11 @@ import java.util.List;
 public class AccountServiceImpl implements AccountService {
 
     private final AccountMapper accountMapper;
+    private final AccountDebtMapper debtMapper;
 
-    public AccountServiceImpl(AccountMapper accountMapper) {
+    public AccountServiceImpl(AccountMapper accountMapper, AccountDebtMapper debtMapper) {
         this.accountMapper = accountMapper;
+        this.debtMapper = debtMapper;
     }
 
     @Override
@@ -32,7 +35,8 @@ public class AccountServiceImpl implements AccountService {
         Long userId = UserContext.getUserId();
         List<AccountVO> out = new ArrayList<>();
         for (Account a : accountMapper.listByUser(userId)) {
-            out.add(toVO(a, BigDecimal.ZERO));
+            BigDecimal debt = debtMapper.sumOutstandingByAccount(a.getId(), userId);
+            out.add(toVO(a, debt == null ? BigDecimal.ZERO : debt));
         }
         return out;
     }

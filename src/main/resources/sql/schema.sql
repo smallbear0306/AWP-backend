@@ -50,6 +50,23 @@ CREATE TABLE IF NOT EXISTS `account` (
     KEY `idx_user` (`user_id`)
 ) ENGINE = InnoDB DEFAULT CHARSET = utf8mb4 COMMENT = '账户';
 
+-- 账户负债表（存额=账户余额-未结清负债(未还款+已逾期)）
+CREATE TABLE IF NOT EXISTS `account_debt` (
+    `id`          BIGINT        NOT NULL AUTO_INCREMENT COMMENT '主键',
+    `user_id`     BIGINT        NOT NULL COMMENT '所属用户',
+    `account_id`  BIGINT        NOT NULL COMMENT '所属账户',
+    `name`        VARCHAR(100)  DEFAULT NULL COMMENT '负债名/说明',
+    `amount`      DECIMAL(12,2) NOT NULL COMMENT '金额',
+    `type`        TINYINT       NOT NULL DEFAULT 0 COMMENT '0 一次性 / 1 按月还款',
+    `status`      TINYINT       NOT NULL DEFAULT 0 COMMENT '0 未还款 / 1 已还款 / 2 已逾期',
+    `due_date`    DATE          DEFAULT NULL COMMENT '到期日',
+    `remark`      VARCHAR(255)  DEFAULT NULL,
+    `create_time` DATETIME      NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    PRIMARY KEY (`id`),
+    KEY `idx_user` (`user_id`),
+    KEY `idx_account` (`account_id`)
+) ENGINE = InnoDB DEFAULT CHARSET = utf8mb4 COMMENT = '账户负债';
+
 -- 账单流水表（category_id 指向二级分类即叶子；account_id 关联账户用于增减余额）
 CREATE TABLE IF NOT EXISTS `record` (
     `id`          BIGINT        NOT NULL AUTO_INCREMENT COMMENT '主键',

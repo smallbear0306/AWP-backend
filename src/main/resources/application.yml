@@ -40,7 +40,8 @@ awp:
   # 真实 api-key 放 application-local.yml，不入库
   vita:
     base-url: https://tokenhub.tencentmaas.com/v1/chat/completions
-    model: youtu-vita
+    # 更强的视觉模型（混元视觉2.0），读数/日期更准
+    model: hy-vision-2.0-instruct
     api-key: ${VITA_API_KEY:}
     # 压缩参数：长边像素 / JPEG 质量(0-1)
     max-edge: 1280

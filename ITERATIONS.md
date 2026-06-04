@@ -38,3 +38,23 @@
 **数据变更**：按约定清空了旧 category/record 测试数据（保留用户账号），重建并灌入预设分类。
 
 ---
+
+## 迭代三：截图识别记账 ✅ 已完成（2026-06-04）
+
+**核心目标**：在"记一笔"中上传支付/购物截图（支付宝/微信/银行/淘宝/拼多多/12306 等），AI 自动识别金额、日期、分类、备注并预填表单；用户确认补齐后入库，同时把压缩截图一并入库，详情可回看。
+
+**产出**
+- 模型：腾讯 TokenHub 的 **youtu-vita**（OpenAI 兼容 /chat/completions，base64 图文混合输入，支持多轮）。
+- 后端：
+  - `ImageUtil` 服务端压缩（长边 1280 / JPEG 0.8），一张截图约 900–1100 token，单次 ≈ ¥0.0016。
+  - `VitaClient`（java.net.http）+ `RecognizeService`：Prompt 注入用户分类树（模型只从二级清单选）、含拼多多订单号取日期规则；解析 JSON 并按名称映射到二级分类 id；识别失败也返回压缩图供手动填。
+  - `POST /api/record/recognize`（multipart→压缩→识别→返回预填字段+压缩图 base64）。
+  - 截图入库：`record.has_image` + 新表 `record_image`（MEDIUMBLOB）；创建账单可带 `imageBase64`；`GET /api/record/{id}/image` 取图；删账单级联删图。
+  - Key 走 `application-local.yml`（不入库）；multipart 上限 15MB。
+- 前端：记一笔弹窗"上传截图自动识别"→预填+图片预览+可移除；列表有截图显回形针图标、点击行弹详情并展示截图（可放大）。
+
+**验收结果**：5 张样例（支付宝/微信/淘宝/银行/拼多多）识别金额/日期/商家/渠道基本全中；公网链路实测 上传→识别→分类映射→带图入库→取图回看 全通过。
+
+**注意**：youtu-vita API Key 曾在对话中明文出现，建议到 TokenHub 后台重置后更新 `application-local.yml`。
+
+---

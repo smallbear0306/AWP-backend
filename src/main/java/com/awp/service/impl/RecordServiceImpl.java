@@ -4,6 +4,7 @@ import com.awp.common.BusinessException;
 import com.awp.common.PageResult;
 import com.awp.common.ResultCode;
 import com.awp.common.UserContext;
+import com.awp.dto.BatchRecordDTO;
 import com.awp.dto.RecordDTO;
 import com.awp.dto.RecordImage;
 import com.awp.dto.RecordQuery;
@@ -58,6 +59,24 @@ public class RecordServiceImpl implements RecordService {
         recordMapper.insert(record);
         if (image != null) {
             recordImageMapper.insert(record.getId(), image, "image/jpeg");
+        }
+    }
+
+    @Override
+    @Transactional
+    public void createBatch(BatchRecordDTO dto) {
+        Long userId = UserContext.getUserId();
+        byte[] image = decodeImage(dto.getImageBase64());
+        for (RecordDTO rd : dto.getRecords()) {
+            validateCategory(rd.getCategoryId(), rd.getType(), userId);
+            Record record = new Record();
+            record.setUserId(userId);
+            copy(rd, record);
+            record.setHasImage(image != null ? 1 : 0);
+            recordMapper.insert(record);
+            if (image != null) {
+                recordImageMapper.insert(record.getId(), image, "image/jpeg");
+            }
         }
     }
 

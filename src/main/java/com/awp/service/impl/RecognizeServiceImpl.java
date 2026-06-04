@@ -4,6 +4,7 @@ import com.awp.common.BusinessException;
 import com.awp.common.ResultCode;
 import com.awp.common.UserContext;
 import com.awp.dto.KnowledgeCard;
+import com.awp.dto.RecognizeItem;
 import com.awp.dto.RecognizeResult;
 import com.awp.entity.Category;
 import com.awp.mapper.CategoryMapper;
@@ -19,6 +20,7 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 
 import java.math.BigDecimal;
+import java.util.ArrayList;
 import java.util.Base64;
 import java.util.HashMap;
 import java.util.LinkedHashMap;
@@ -84,13 +86,14 @@ public class RecognizeServiceImpl implements RecognizeService {
             // 第2轮：依据规则 + 分类清单，产出最终 JSON
             String json2 = vitaClient.recognize(jpg, buildExtractPrompt(hits, cats));
 
-            // 第3轮：自检纠错（强调逐位核对，减少 OCR/算术误差）
+            // 第3轮：自检纠错（强调逐位核对 + 是否应拆成多笔）
             String json3 = vitaClient.recognize(jpg,
                     "这是你刚才对本截图给出的记账结果 JSON：\n" + extractJson(json2) + "\n"
                             + "请对照原图严格自检并改正：\n"
-                            + "1) 金额：在图中逐位核对每一个数字与小数点；若涉及计算(如含税收入=申报收入−已申报税额)，重新把两个原始数字读准后再算一遍。\n"
-                            + "2) 日期：逐位核对年/月/日，特别是年份(如 2026 不要看成 2024)；若来自订单编号，核对'-'前 8 位。\n"
-                            + "3) 收支方向、分类 id 是否合理。\n"
+                            + "1) 笔数：是否该拆成多笔？例如个税截图应拆为【收入=申报收入】和【支出=已申报税额(个人所得税)】两笔，不要相减合并。每笔都是 items 里的一个对象。\n"
+                            + "2) 金额：逐位核对每个数字与小数点（不要相加减，按原始值如实填）。\n"
+                            + "3) 日期：逐位核对年/月/日，特别是年份(如 2026 不要看成 2024)；若来自订单编号，核对'-'前 8 位。\n"
+                            + "4) 每笔的收支方向、分类 id 是否合理。\n"
                             + "返回修正后的完整 JSON（无误则原样）。严格只输出 JSON，不要多余文字、不要 markdown 围栏。");
 
             parseInto(result, json3, cats);
@@ -109,14 +112,16 @@ public class RecognizeServiceImpl implements RecognizeService {
         for (KnowledgeCard c : cards) {
             rules.append("- ").append(c.getTitle()).append("：").append(c.getRule()).append("\n");
         }
-        return "你是记账助手，请从这张截图提取记账所需信息，并自行完成其中需要的计算。\n"
+        return "你是记账助手，请从这张截图提取记账所需信息。\n"
+                + "一张截图可能包含【多笔】交易，请分别列为多条，不要相加减合并。"
+                + "例如个税截图应拆成两笔：①一笔收入(金额=申报收入)；②一笔支出(金额=已申报税额，即个人所得税)。普通支付通常只有一笔。\n"
                 + "【处理规则】(严格遵守)：\n" + rules
-                + "【可选分类】(从中挑最贴切的二级分类，返回它的数字 id)：\n" + buildCategoryList(cats)
-                + "【输出字段】严格只输出 JSON：\n"
+                + "【可选分类】(每笔从中挑最贴切的二级分类，返回它的数字 id)：\n" + buildCategoryList(cats)
+                + "【输出格式】严格只输出 JSON 对象 {\"items\":[ ... ]}，items 是交易数组，每个元素字段：\n"
                 + "type: \"支出\" 或 \"收入\"\n"
-                + "amount: 最终入账金额(数字,正数，已按规则算好，不要附带单位)\n"
+                + "amount: 金额(数字,正数，如实填原始值，不要做加减)\n"
                 + "date: \"YYYY-MM-DD\"\n"
-                + "categoryId: 选中的二级分类的数字 id；选不到填 null\n"
+                + "categoryId: 选中的二级分类数字 id；选不到填 null\n"
                 + "counterparty: 收款方/商家/扣缴义务人（不要填付款人本人）\n"
                 + "channel: 支付渠道(支付宝/微信/银行/花呗/零钱等)，无则 null\n"
                 + "summary: 一句话说明\n"
@@ -149,46 +154,56 @@ public class RecognizeServiceImpl implements RecognizeService {
         return "支出:\n" + expense + "收入:\n" + income;
     }
 
-    /** 解析最终 JSON 写入结果；分类 id 仅做归属/合法性校验（非业务逻辑） */
+    /** 解析最终 JSON 的 items 数组为多笔；分类 id 仅做归属/合法性校验（非业务逻辑） */
     private void parseInto(RecognizeResult r, String content, List<Category> cats) throws Exception {
-        JsonNode j = mapper.readTree(extractJson(content));
-
-        String typeStr = text(j, "type");
-        Integer type = null;
-        if (typeStr != null) {
-            if (typeStr.contains("收")) type = 1;
-            else if (typeStr.contains("支")) type = 0;
+        JsonNode root = mapper.readTree(extractJson(content));
+        JsonNode arr = root.path("items");
+        if (!arr.isArray() || arr.isEmpty()) {
+            throw new BusinessException(ResultCode.SYSTEM_ERROR.getCode(), "模型未返回交易明细");
         }
-        r.setType(type);
-
-        BigDecimal amount = num(j, "amount");
-        if (amount != null) r.setAmount(amount.abs());
-
-        r.setRecordDate(text(j, "date"));
-
-        String counterparty = text(j, "counterparty");
-        String summary = text(j, "summary");
-        String remark = summary != null ? summary : counterparty;
-        if (counterparty != null && summary != null && !summary.contains(counterparty)) {
-            remark = counterparty + "·" + summary;
-        }
-        r.setRemark(remark);
-
-        // 校验模型返回的 categoryId：必须是当前用户可见、二级(叶子)、类型一致
         Map<Long, Category> byId = new HashMap<>();
         for (Category c : cats) byId.put(c.getId(), c);
-        BigDecimal cidNum = num(j, "categoryId");
-        if (cidNum != null) {
-            Category leaf = byId.get(cidNum.longValue());
-            if (leaf != null && leaf.getParentId() != null
-                    && (type == null || type.equals(leaf.getType()))) {
-                r.setCategoryId(leaf.getId());
-                r.setParentCategoryId(leaf.getParentId());
-                r.setCategoryL2(leaf.getName());
-                Category parent = byId.get(leaf.getParentId());
-                if (parent != null) r.setCategoryL1(parent.getName());
+
+        List<RecognizeItem> items = new ArrayList<>();
+        for (JsonNode j : arr) {
+            RecognizeItem item = new RecognizeItem();
+
+            String typeStr = text(j, "type");
+            Integer type = null;
+            if (typeStr != null) {
+                if (typeStr.contains("收")) type = 1;
+                else if (typeStr.contains("支")) type = 0;
             }
+            item.setType(type);
+
+            BigDecimal amount = num(j, "amount");
+            if (amount != null) item.setAmount(amount.abs());
+
+            item.setRecordDate(text(j, "date"));
+
+            String counterparty = text(j, "counterparty");
+            String summary = text(j, "summary");
+            String remark = summary != null ? summary : counterparty;
+            if (counterparty != null && summary != null && !summary.contains(counterparty)) {
+                remark = counterparty + "·" + summary;
+            }
+            item.setRemark(remark);
+
+            BigDecimal cidNum = num(j, "categoryId");
+            if (cidNum != null) {
+                Category leaf = byId.get(cidNum.longValue());
+                if (leaf != null && leaf.getParentId() != null
+                        && (type == null || type.equals(leaf.getType()))) {
+                    item.setCategoryId(leaf.getId());
+                    item.setParentCategoryId(leaf.getParentId());
+                    item.setCategoryL2(leaf.getName());
+                    Category parent = byId.get(leaf.getParentId());
+                    if (parent != null) item.setCategoryL1(parent.getName());
+                }
+            }
+            items.add(item);
         }
+        r.setItems(items);
     }
 
     /** 从可能带 markdown 围栏的文本里截取 JSON 主体 */

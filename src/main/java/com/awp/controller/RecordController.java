@@ -3,6 +3,7 @@ package com.awp.controller;
 import com.awp.common.PageResult;
 import com.awp.common.Result;
 import com.awp.common.ResultCode;
+import com.awp.dto.BatchRecordDTO;
 import com.awp.dto.RecordDTO;
 import com.awp.dto.RecordImage;
 import com.awp.dto.RecordQuery;
@@ -43,6 +44,13 @@ public class RecordController {
     @PostMapping
     public Result<Void> create(@Valid @RequestBody RecordDTO dto) {
         recordService.create(dto);
+        return Result.success();
+    }
+
+    /** 批量创建（一张截图识别出的多笔，复核后一起入库） */
+    @PostMapping("/batch")
+    public Result<Void> batch(@Valid @RequestBody BatchRecordDTO dto) {
+        recordService.createBatch(dto);
         return Result.success();
     }
 

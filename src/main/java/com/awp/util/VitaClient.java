@@ -15,6 +15,7 @@ import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
 import java.time.Duration;
 import java.util.Base64;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 
@@ -29,6 +30,7 @@ public class VitaClient {
     private final String baseUrl;
     private final String model;
     private final String apiKey;
+    private final boolean disableThinking;
     private final ObjectMapper mapper = new ObjectMapper();
     private final HttpClient http = HttpClient.newBuilder()
             .connectTimeout(Duration.ofSeconds(15))
@@ -36,10 +38,12 @@ public class VitaClient {
 
     public VitaClient(@Value("${awp.vita.base-url}") String baseUrl,
                       @Value("${awp.vita.model}") String model,
-                      @Value("${awp.vita.api-key:}") String apiKey) {
+                      @Value("${awp.vita.api-key:}") String apiKey,
+                      @Value("${awp.vita.disable-thinking:false}") boolean disableThinking) {
         this.baseUrl = baseUrl;
         this.model = model;
         this.apiKey = apiKey;
+        this.disableThinking = disableThinking;
     }
 
     /**
@@ -50,17 +54,20 @@ public class VitaClient {
             throw new BusinessException(ResultCode.SYSTEM_ERROR.getCode(), "未配置图像识别 API Key");
         }
         String dataUrl = "data:image/jpeg;base64," + Base64.getEncoder().encodeToString(jpegBytes);
-        Map<String, Object> body = Map.of(
-                "model", model,
-                "stream", false,
-                "messages", List.of(Map.of(
-                        "role", "user",
-                        "content", List.of(
-                                Map.of("type", "image_url", "image_url", Map.of("url", dataUrl)),
-                                Map.of("type", "text", "text", prompt)
-                        )
-                ))
-        );
+        Map<String, Object> body = new LinkedHashMap<>();
+        body.put("model", model);
+        body.put("stream", false);
+        // 关闭深度思考(豆包等支持)，大幅提速；非支持的模型可在配置里关掉此开关
+        if (disableThinking) {
+            body.put("thinking", Map.of("type", "disabled"));
+        }
+        body.put("messages", List.of(Map.of(
+                "role", "user",
+                "content", List.of(
+                        Map.of("type", "image_url", "image_url", Map.of("url", dataUrl)),
+                        Map.of("type", "text", "text", prompt)
+                )
+        )));
         try {
             String json = mapper.writeValueAsString(body);
             HttpRequest req = HttpRequest.newBuilder(URI.create(baseUrl))

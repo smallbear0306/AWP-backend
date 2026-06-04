@@ -1,0 +1,21 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "https://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.awp.mapper.RecordImageMapper">
+
+    <insert id="insert">
+        INSERT INTO record_image (record_id, content, content_type, create_time)
+        VALUES (#{recordId}, #{content}, #{contentType}, NOW())
+    </insert>
+
+    <select id="findByRecordId" resultType="com.awp.dto.RecordImage">
+        SELECT record_id, content, content_type
+        FROM record_image
+        WHERE record_id = #{recordId}
+    </select>
+
+    <delete id="deleteByRecordId">
+        DELETE FROM record_image WHERE record_id = #{recordId}
+    </delete>
+
+</mapper>

@@ -42,7 +42,17 @@ CREATE TABLE IF NOT EXISTS `record` (
     `amount`      DECIMAL(10,2) NOT NULL COMMENT '金额',
     `remark`      VARCHAR(255)  DEFAULT NULL COMMENT '备注',
     `record_date` DATE          NOT NULL COMMENT '记账日期',
+    `has_image`   TINYINT       NOT NULL DEFAULT 0 COMMENT '是否有截图',
     `create_time` DATETIME      NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
     PRIMARY KEY (`id`),
     KEY `idx_user_date` (`user_id`, `record_date`)
 ) ENGINE = InnoDB DEFAULT CHARSET = utf8mb4 COMMENT = '账单流水表';
+
+-- 账单截图表（压缩后的 jpg，单独存放不拖慢账单列表查询）
+CREATE TABLE IF NOT EXISTS `record_image` (
+    `record_id`    BIGINT      NOT NULL COMMENT '账单 id',
+    `content`      MEDIUMBLOB  NOT NULL COMMENT '压缩后的 jpg 二进制',
+    `content_type` VARCHAR(50) NOT NULL DEFAULT 'image/jpeg' COMMENT 'MIME',
+    `create_time`  DATETIME    NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
+    PRIMARY KEY (`record_id`)
+) ENGINE = InnoDB DEFAULT CHARSET = utf8mb4 COMMENT = '账单截图';

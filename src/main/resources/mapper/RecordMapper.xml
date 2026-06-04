@@ -26,7 +26,7 @@
     <select id="page" resultType="com.awp.dto.RecordVO">
         SELECT r.id, r.category_id, c.name AS category_name,
                c.parent_id AS parent_category_id, p.name AS parent_category_name,
-               r.type, r.amount, r.remark, r.record_date, r.create_time
+               r.type, r.amount, r.remark, r.record_date, r.has_image, r.create_time
         FROM record r
         LEFT JOIN category c ON r.category_id = c.id
         LEFT JOIN category p ON c.parent_id = p.id
@@ -49,8 +49,8 @@
 
     <insert id="insert" parameterType="com.awp.entity.Record"
             useGeneratedKeys="true" keyProperty="id">
-        INSERT INTO record (user_id, category_id, type, amount, remark, record_date, create_time)
-        VALUES (#{userId}, #{categoryId}, #{type}, #{amount}, #{remark}, #{recordDate}, NOW())
+        INSERT INTO record (user_id, category_id, type, amount, remark, record_date, has_image, create_time)
+        VALUES (#{userId}, #{categoryId}, #{type}, #{amount}, #{remark}, #{recordDate}, #{hasImage}, NOW())
     </insert>
 
     <update id="update" parameterType="com.awp.entity.Record">

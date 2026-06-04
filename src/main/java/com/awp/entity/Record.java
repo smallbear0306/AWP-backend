@@ -18,5 +18,6 @@ public class Record {
     private BigDecimal amount;
     private String remark;
     private LocalDate recordDate;
+    private Integer hasImage;
     private LocalDateTime createTime;
 }

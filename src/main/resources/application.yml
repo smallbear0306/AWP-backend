@@ -15,6 +15,11 @@ spring:
     hikari:
       maximum-pool-size: 10
       minimum-idle: 2
+  # 上传截图大小上限（原图，压缩在后端做）
+  servlet:
+    multipart:
+      max-file-size: 15MB
+      max-request-size: 20MB
 
 # MyBatis 配置
 mybatis:
@@ -31,6 +36,15 @@ awp:
     secret: awp-default-jwt-secret-key-please-change-in-production-1234567890
     # token 有效期（毫秒），默认 7 天
     expire-millis: 604800000
+  # 图像识别（火山/腾讯 TokenHub youtu-vita，OpenAI 兼容）
+  # 真实 api-key 放 application-local.yml，不入库
+  vita:
+    base-url: https://tokenhub.tencentmaas.com/v1/chat/completions
+    model: youtu-vita
+    api-key: ${VITA_API_KEY:}
+    # 压缩参数：长边像素 / JPEG 质量(0-1)
+    max-edge: 1280
+    quality: 0.8
 
 logging:
   level:

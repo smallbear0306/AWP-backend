@@ -2,7 +2,9 @@ package com.awp.controller;
 
 import com.awp.common.PageResult;
 import com.awp.common.Result;
+import com.awp.common.ResultCode;
 import com.awp.dto.RecordDTO;
+import com.awp.dto.RecordImage;
 import com.awp.dto.RecordQuery;
 import com.awp.dto.RecordVO;
 import com.awp.service.RecordService;
@@ -15,6 +17,9 @@ import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
+
+import java.util.Base64;
+import java.util.Map;
 
 /**
  * 账单相关接口（需登录）。
@@ -51,5 +56,17 @@ public class RecordController {
     public Result<Void> delete(@PathVariable Long id) {
         recordService.delete(id);
         return Result.success();
+    }
+
+    /** 取某账单的截图（base64 data URL，供详情弹窗展示） */
+    @GetMapping("/{id}/image")
+    public Result<Map<String, String>> image(@PathVariable Long id) {
+        RecordImage img = recordService.getImage(id);
+        if (img == null || img.getContent() == null) {
+            return Result.error(ResultCode.NOT_FOUND.getCode(), "该账单没有截图");
+        }
+        String dataUrl = "data:" + img.getContentType() + ";base64,"
+                + Base64.getEncoder().encodeToString(img.getContent());
+        return Result.success(Map.of("image", dataUrl));
     }
 }

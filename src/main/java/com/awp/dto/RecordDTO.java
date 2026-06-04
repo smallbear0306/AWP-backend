@@ -27,4 +27,7 @@ public class RecordDTO {
 
     @NotNull(message = "记账日期不能为空")
     private LocalDate recordDate;
+
+    /** 可选：截图压缩后的 jpg base64（新增时随账单一起入库；不含 data: 前缀亦可） */
+    private String imageBase64;
 }

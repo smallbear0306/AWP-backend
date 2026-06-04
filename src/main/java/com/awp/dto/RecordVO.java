@@ -20,5 +20,6 @@ public class RecordVO {
     private BigDecimal amount;
     private String remark;
     private LocalDate recordDate;
+    private Integer hasImage;             // 1=有截图
     private LocalDateTime createTime;
 }

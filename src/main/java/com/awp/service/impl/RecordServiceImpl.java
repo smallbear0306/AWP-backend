@@ -11,6 +11,7 @@ import com.awp.dto.RecordQuery;
 import com.awp.dto.RecordVO;
 import com.awp.entity.Category;
 import com.awp.entity.Record;
+import com.awp.mapper.AccountMapper;
 import com.awp.mapper.CategoryMapper;
 import com.awp.mapper.RecordImageMapper;
 import com.awp.mapper.RecordMapper;
@@ -18,11 +19,13 @@ import com.awp.service.RecordService;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.math.BigDecimal;
 import java.util.Base64;
 import java.util.List;
 
 /**
  * 账单业务实现。所有操作绑定当前登录用户。
+ * 账单与账户关联：收入对账户余额 +amount，支出 -amount；编辑/删除会反向冲正。
  */
 @Service
 public class RecordServiceImpl implements RecordService {
@@ -30,12 +33,14 @@ public class RecordServiceImpl implements RecordService {
     private final RecordMapper recordMapper;
     private final CategoryMapper categoryMapper;
     private final RecordImageMapper recordImageMapper;
+    private final AccountMapper accountMapper;
 
     public RecordServiceImpl(RecordMapper recordMapper, CategoryMapper categoryMapper,
-                             RecordImageMapper recordImageMapper) {
+                             RecordImageMapper recordImageMapper, AccountMapper accountMapper) {
         this.recordMapper = recordMapper;
         this.categoryMapper = categoryMapper;
         this.recordImageMapper = recordImageMapper;
+        this.accountMapper = accountMapper;
     }
 
     @Override
@@ -50,6 +55,7 @@ public class RecordServiceImpl implements RecordService {
     @Transactional
     public void create(RecordDTO dto) {
         Long userId = UserContext.getUserId();
+        validateAccount(dto.getAccountId(), userId);
         validateCategory(dto.getCategoryId(), dto.getType(), userId);
         byte[] image = decodeImage(dto.getImageBase64());
         Record record = new Record();
@@ -60,6 +66,7 @@ public class RecordServiceImpl implements RecordService {
         if (image != null) {
             recordImageMapper.insert(record.getId(), image, "image/jpeg");
         }
+        applyBalance(record.getAccountId(), userId, record.getType(), record.getAmount());
     }
 
     @Override
@@ -68,6 +75,7 @@ public class RecordServiceImpl implements RecordService {
         Long userId = UserContext.getUserId();
         byte[] image = decodeImage(dto.getImageBase64());
         for (RecordDTO rd : dto.getRecords()) {
+            validateAccount(rd.getAccountId(), userId);
             validateCategory(rd.getCategoryId(), rd.getType(), userId);
             Record record = new Record();
             record.setUserId(userId);
@@ -77,32 +85,43 @@ public class RecordServiceImpl implements RecordService {
             if (image != null) {
                 recordImageMapper.insert(record.getId(), image, "image/jpeg");
             }
+            applyBalance(record.getAccountId(), userId, record.getType(), record.getAmount());
         }
     }
 
     @Override
+    @Transactional
     public void update(Long id, RecordDTO dto) {
         Long userId = UserContext.getUserId();
-        if (recordMapper.findByIdAndUser(id, userId) == null) {
+        Record old = recordMapper.findByIdAndUser(id, userId);
+        if (old == null) {
             throw new BusinessException(ResultCode.NOT_FOUND);
         }
+        validateAccount(dto.getAccountId(), userId);
         validateCategory(dto.getCategoryId(), dto.getType(), userId);
+        // 先冲正旧账户影响
+        applyBalance(old.getAccountId(), userId, old.getType(), old.getAmount().negate());
         Record record = new Record();
         record.setId(id);
         record.setUserId(userId);
         copy(dto, record);
         recordMapper.update(record);
+        // 再施加新影响
+        applyBalance(record.getAccountId(), userId, record.getType(), record.getAmount());
     }
 
     @Override
     @Transactional
     public void delete(Long id) {
         Long userId = UserContext.getUserId();
-        if (recordMapper.findByIdAndUser(id, userId) == null) {
+        Record old = recordMapper.findByIdAndUser(id, userId);
+        if (old == null) {
             throw new BusinessException(ResultCode.NOT_FOUND);
         }
         recordImageMapper.deleteByRecordId(id);
         recordMapper.deleteByIdAndUser(id, userId);
+        // 删除则反向冲正其对账户余额的影响
+        applyBalance(old.getAccountId(), userId, old.getType(), old.getAmount().negate());
     }
 
     @Override
@@ -112,6 +131,22 @@ public class RecordServiceImpl implements RecordService {
             throw new BusinessException(ResultCode.NOT_FOUND);
         }
         return recordImageMapper.findByRecordId(id);
+    }
+
+    /** 对账户余额施加影响：收入 +amount，支出 -amount（amount 可为负用于冲正） */
+    private void applyBalance(Long accountId, Long userId, Integer type, BigDecimal amount) {
+        if (accountId == null || amount == null) {
+            return;
+        }
+        BigDecimal delta = (type != null && type == 1) ? amount : amount.negate();
+        accountMapper.addBalance(accountId, userId, delta);
+    }
+
+    /** 校验账户归属当前用户 */
+    private void validateAccount(Long accountId, Long userId) {
+        if (accountId == null || accountMapper.findByIdAndUser(accountId, userId) == null) {
+            throw new BusinessException(ResultCode.PARAM_ERROR.getCode(), "账户不存在");
+        }
     }
 
     /** 解析 base64（兼容带 data:image/...;base64, 前缀），空则返回 null */
@@ -146,6 +181,7 @@ public class RecordServiceImpl implements RecordService {
     }
 
     private void copy(RecordDTO dto, Record record) {
+        record.setAccountId(dto.getAccountId());
         record.setCategoryId(dto.getCategoryId());
         record.setType(dto.getType());
         record.setAmount(dto.getAmount());

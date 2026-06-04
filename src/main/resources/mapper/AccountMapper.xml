@@ -1,0 +1,51 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "https://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.awp.mapper.AccountMapper">
+
+    <sql id="cols">id, user_id, name, type, bank, kind, balance, icon, sort_order, create_time, update_time</sql>
+
+    <select id="listByUser" resultType="com.awp.entity.Account">
+        SELECT <include refid="cols"/>
+        FROM account
+        WHERE user_id = #{userId}
+        ORDER BY sort_order ASC, id ASC
+    </select>
+
+    <select id="findByIdAndUser" resultType="com.awp.entity.Account">
+        SELECT <include refid="cols"/>
+        FROM account
+        WHERE id = #{id} AND user_id = #{userId}
+    </select>
+
+    <insert id="insert" parameterType="com.awp.entity.Account"
+            useGeneratedKeys="true" keyProperty="id">
+        INSERT INTO account (user_id, name, type, bank, kind, balance, icon, sort_order, create_time, update_time)
+        VALUES (#{userId}, #{name}, #{type}, #{bank}, #{kind}, #{balance}, #{icon}, #{sortOrder}, NOW(), NOW())
+    </insert>
+
+    <update id="update" parameterType="com.awp.entity.Account">
+        UPDATE account
+        SET name = #{name}, type = #{type}, bank = #{bank}, kind = #{kind}, icon = #{icon}
+        WHERE id = #{id} AND user_id = #{userId}
+    </update>
+
+    <delete id="deleteByIdAndUser">
+        DELETE FROM account WHERE id = #{id} AND user_id = #{userId}
+    </delete>
+
+    <update id="addBalance">
+        UPDATE account SET balance = balance + #{delta}
+        WHERE id = #{id} AND user_id = #{userId}
+    </update>
+
+    <update id="setBalance">
+        UPDATE account SET balance = #{balance}, update_time = NOW()
+        WHERE id = #{id} AND user_id = #{userId}
+    </update>
+
+    <select id="countRecords" resultType="int">
+        SELECT COUNT(*) FROM record WHERE account_id = #{accountId}
+    </select>
+
+</mapper>

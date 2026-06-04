@@ -12,6 +12,8 @@ import java.time.LocalDateTime;
 @Data
 public class RecordVO {
     private Long id;
+    private Long accountId;
+    private String accountName;
     private Long categoryId;             // 二级分类(叶子) id
     private String categoryName;         // 二级分类名
     private Long parentCategoryId;       // 一级分类 id

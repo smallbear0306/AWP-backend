@@ -33,10 +33,28 @@ CREATE TABLE IF NOT EXISTS `category` (
     KEY `idx_parent` (`parent_id`)
 ) ENGINE = InnoDB DEFAULT CHARSET = utf8mb4 COMMENT = '分类表（自关联两层 + 收支类型）';
 
--- 账单流水表（category_id 指向二级分类即叶子）
+-- 账户表（余额由记账增减/划账维护；存额=余额-未结清负债，见 account_debt）
+CREATE TABLE IF NOT EXISTS `account` (
+    `id`          BIGINT        NOT NULL AUTO_INCREMENT COMMENT '主键',
+    `user_id`     BIGINT        NOT NULL COMMENT '所属用户',
+    `name`        VARCHAR(50)   NOT NULL COMMENT '账户名',
+    `type`        VARCHAR(30)   NOT NULL COMMENT '类型:储蓄卡/信用卡/支付宝余额/微信余额/花呗/余额宝/零钱通/理财/饭卡/现金/其他',
+    `bank`        VARCHAR(50)   DEFAULT NULL COMMENT '银行名(银行卡类)',
+    `kind`        TINYINT       NOT NULL DEFAULT 0 COMMENT '0 储蓄 / 1 信用',
+    `balance`     DECIMAL(12,2) NOT NULL DEFAULT 0 COMMENT '余额',
+    `icon`        VARCHAR(50)   DEFAULT NULL,
+    `sort_order`  INT           NOT NULL DEFAULT 0,
+    `create_time` DATETIME      NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    `update_time` DATETIME      NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '上次划账/更新时间',
+    PRIMARY KEY (`id`),
+    KEY `idx_user` (`user_id`)
+) ENGINE = InnoDB DEFAULT CHARSET = utf8mb4 COMMENT = '账户';
+
+-- 账单流水表（category_id 指向二级分类即叶子；account_id 关联账户用于增减余额）
 CREATE TABLE IF NOT EXISTS `record` (
     `id`          BIGINT        NOT NULL AUTO_INCREMENT COMMENT '主键',
     `user_id`     BIGINT        NOT NULL COMMENT '所属用户',
+    `account_id`  BIGINT        DEFAULT NULL COMMENT '所属账户',
     `category_id` BIGINT        NOT NULL COMMENT '二级分类（叶子）',
     `type`        TINYINT       NOT NULL COMMENT '类型：0 支出 / 1 收入',
     `amount`      DECIMAL(10,2) NOT NULL COMMENT '金额',

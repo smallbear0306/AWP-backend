@@ -13,6 +13,9 @@ import java.time.LocalDate;
 @Data
 public class RecordDTO {
 
+    @NotNull(message = "请选择账户")
+    private Long accountId;
+
     @NotNull(message = "分类不能为空")
     private Long categoryId;
 

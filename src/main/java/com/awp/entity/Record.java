@@ -13,6 +13,7 @@ import java.time.LocalDateTime;
 public class Record {
     private Long id;
     private Long userId;
+    private Long accountId;
     private Long categoryId;
     private Integer type;
     private BigDecimal amount;

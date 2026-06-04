@@ -58,3 +58,18 @@
 **注意**：youtu-vita API Key 曾在对话中明文出现，建议到 TokenHub 后台重置后更新 `application-local.yml`。
 
 ---
+
+## 迭代四：识别解耦 RAG + 多轮（2026-06-04）
+
+**核心目标**：后端不再写任何"按截图类型"的业务逻辑/算术；规则以数据(知识卡片)存放，模型依据检索到的规则自行分析，新增图片类型只需加卡片。
+
+**产出**
+- 知识库 `knowledge/cards.json`（个税/支付/电商订单/退款/兜底），`KnowledgeCard`。
+- `EmbeddingClient`（阿里云百炼 DashScope `text-embedding-v3`，1024维）+ `KnowledgeService`（启动时把卡片向量化缓存，按查询余弦检索 topK）。
+- `RecognizeService` 改 3 轮：①判场景 ②RAG取卡+分类清单(带id) 出 JSON ③逐位自检纠错；**删除后端 gross/fee 算术**，分类 id 由模型返回、后端仅做归属/合法性校验。
+- 视觉模型由 youtu-vita 切换为 `hy-vision-2.0-instruct`。
+- 配置：embedding key 走 `application-local.yml`（不入库）。
+
+**已知问题/权衡**：把算术与逐位 OCR 完全交给模型后，金额(如个税净额 8690)与长订单号日期存在**跨次波动**（8690/8750、年份读错），换更强模型也未根治。当前靠"提交前人工确认"兜底。后续可选**混合算术**（模型读原始数字+给算式，后端通用计算器求值，仍不含按类型业务逻辑）来消除算术类误差。
+
+---

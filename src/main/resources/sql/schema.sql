@@ -56,17 +56,36 @@ CREATE TABLE IF NOT EXISTS `account_debt` (
     `user_id`     BIGINT        NOT NULL COMMENT '所属用户',
     `account_id`  BIGINT        NOT NULL COMMENT '所属账户',
     `name`        VARCHAR(100)  DEFAULT NULL COMMENT '负债名/说明',
-    `amount`      DECIMAL(12,2) NOT NULL COMMENT '金额',
+    `amount`      DECIMAL(12,2) NOT NULL COMMENT '应还本金',
+    `rate`        DECIMAL(8,4)  DEFAULT 0 COMMENT '年利率(%)',
     `type`        TINYINT       NOT NULL DEFAULT 0 COMMENT '0 一次性 / 1 按月还款',
-    `months`      INT           DEFAULT NULL COMMENT '按月还款的贷款月数',
-    `status`      TINYINT       NOT NULL DEFAULT 0 COMMENT '0 未还款 / 1 已还款 / 2 已逾期',
-    `due_date`    DATE          DEFAULT NULL COMMENT '到期日',
+    `months`      INT           DEFAULT NULL COMMENT '期限/期数(月)',
+    `repay_method` TINYINT      NOT NULL DEFAULT 3 COMMENT '0等额本息/1等额本金/2付息后一次性还本/3一次性还本息',
+    `status`      TINYINT       NOT NULL DEFAULT 0 COMMENT '(旧)0未还/1已还/2逾期，现以分期为准',
+    `due_date`    DATE          DEFAULT NULL COMMENT '首期/到期日',
     `remark`      VARCHAR(255)  DEFAULT NULL,
     `create_time` DATETIME      NOT NULL DEFAULT CURRENT_TIMESTAMP,
     PRIMARY KEY (`id`),
     KEY `idx_user` (`user_id`),
     KEY `idx_account` (`account_id`)
 ) ENGINE = InnoDB DEFAULT CHARSET = utf8mb4 COMMENT = '账户负债';
+
+-- 负债分期（按月还款生成 N 条，可逐期标记还款；一次性也生成 1 条）
+CREATE TABLE IF NOT EXISTS `debt_installment` (
+    `id`         BIGINT        NOT NULL AUTO_INCREMENT,
+    `user_id`    BIGINT        NOT NULL,
+    `account_id` BIGINT        NOT NULL,
+    `debt_id`    BIGINT        NOT NULL,
+    `period`     INT           NOT NULL COMMENT '第几期',
+    `due_date`   DATE          DEFAULT NULL,
+    `principal`  DECIMAL(12,2) NOT NULL DEFAULT 0 COMMENT '本金部分',
+    `interest`   DECIMAL(12,2) NOT NULL DEFAULT 0 COMMENT '利息部分',
+    `amount`     DECIMAL(12,2) NOT NULL DEFAULT 0 COMMENT '本期应还(本+息)',
+    `status`     TINYINT       NOT NULL DEFAULT 0 COMMENT '0未还/1已还/2逾期',
+    PRIMARY KEY (`id`),
+    KEY `idx_debt` (`debt_id`),
+    KEY `idx_acct` (`account_id`)
+) ENGINE = InnoDB DEFAULT CHARSET = utf8mb4 COMMENT = '负债分期';
 
 -- 账单流水表（category_id 指向二级分类即叶子；account_id 关联账户用于增减余额）
 CREATE TABLE IF NOT EXISTS `record` (

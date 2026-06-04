@@ -17,12 +17,16 @@ public class AccountDebtDTO {
 
     private String name;
 
-    @NotNull(message = "金额不能为空")
-    private BigDecimal amount;
+    @NotNull(message = "应还本金不能为空")
+    private BigDecimal amount;   // 应还本金
 
-    private Integer type;     // 0 一次性 / 1 按月还款，默认 0
+    private BigDecimal rate;     // 年利率(%)，可空(=0 不计息)
 
-    private Integer months;   // 按月还款的贷款月数
+    private Integer type;        // 0 一次性 / 1 按月还款，默认 0
+
+    private Integer months;      // 期限/期数(月)
+
+    private Integer repayMethod; // 0等额本息/1等额本金/2付息后一次性还本/3一次性还本息
 
     private Integer status;   // 0 未还款 / 1 已还款 / 2 已逾期，默认 0
 

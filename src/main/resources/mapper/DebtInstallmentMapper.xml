@@ -1,0 +1,40 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "https://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.awp.mapper.DebtInstallmentMapper">
+
+    <insert id="insert" parameterType="com.awp.entity.DebtInstallment"
+            useGeneratedKeys="true" keyProperty="id">
+        INSERT INTO debt_installment (user_id, account_id, debt_id, period, due_date, principal, interest, amount, status)
+        VALUES (#{userId}, #{accountId}, #{debtId}, #{period}, #{dueDate}, #{principal}, #{interest}, #{amount}, #{status})
+    </insert>
+
+    <select id="listByDebt" resultType="com.awp.entity.DebtInstallment">
+        SELECT id, user_id, account_id, debt_id, period, due_date, principal, interest, amount, status
+        FROM debt_installment
+        WHERE debt_id = #{debtId}
+        ORDER BY period ASC
+    </select>
+
+    <select id="findByIdAndUser" resultType="com.awp.entity.DebtInstallment">
+        SELECT id, user_id, account_id, debt_id, period, due_date, principal, interest, amount, status
+        FROM debt_installment
+        WHERE id = #{id} AND user_id = #{userId}
+    </select>
+
+    <update id="updateStatus">
+        UPDATE debt_installment SET status = #{status}
+        WHERE id = #{id} AND user_id = #{userId}
+    </update>
+
+    <delete id="deleteByDebt">
+        DELETE FROM debt_installment WHERE debt_id = #{debtId}
+    </delete>
+
+    <select id="sumOutstandingByAccount" resultType="java.math.BigDecimal">
+        SELECT COALESCE(SUM(amount), 0)
+        FROM debt_installment
+        WHERE account_id = #{accountId} AND user_id = #{userId} AND status IN (0, 2)
+    </select>
+
+</mapper>

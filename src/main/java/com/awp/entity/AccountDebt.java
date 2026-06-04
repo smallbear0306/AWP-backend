@@ -15,9 +15,11 @@ public class AccountDebt {
     private Long userId;
     private Long accountId;
     private String name;
-    private BigDecimal amount;
+    private BigDecimal amount;       // 应还本金
+    private BigDecimal rate;         // 年利率(%)
     private Integer type;
-    private Integer months;     // 按月还款的贷款月数
+    private Integer months;         // 期限/期数(月)
+    private Integer repayMethod;    // 0等额本息/1等额本金/2付息后一次性还本/3一次性还本息
     private Integer status;
     private LocalDate dueDate;
     private String remark;

@@ -17,7 +17,7 @@ public interface AccountService {
     Account create(AccountDTO dto);
 
     /** 批量创建账户 */
-    void createBatch(java.util.List<AccountDTO> dtos);
+    void createBatch(List<AccountDTO> dtos);
 
     void update(Long id, AccountDTO dto);
 

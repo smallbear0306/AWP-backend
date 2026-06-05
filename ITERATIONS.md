@@ -180,3 +180,5 @@
 - 账单详情弹窗加 编辑/删除；各弹窗移动端自适应宽。
 
 纯前端。
+
+- **迭代十一补充：PWA**——`public/manifest.json`(display standalone, theme #409eff, icon-192/512) + index.html 加 iOS 全屏 meta(`apple-mobile-web-app-capable=yes` 等) + apple-touch-icon(icon-180)；生成蓝底白"记"图标 180/192/512。Safari 添加到主屏幕后全屏无浏览器UI。注意：cpolar 免费版地址变了会导致已添加的主屏图标指向旧址失效，需固定域名。

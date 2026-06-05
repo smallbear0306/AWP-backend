@@ -182,3 +182,16 @@
 纯前端。
 
 - **迭代十一补充：PWA**——`public/manifest.json`(display standalone, theme #409eff, icon-192/512) + index.html 加 iOS 全屏 meta(`apple-mobile-web-app-capable=yes` 等) + apple-touch-icon(icon-180)；生成蓝底白"记"图标 180/192/512。Safari 添加到主屏幕后全屏无浏览器UI。注意：cpolar 免费版地址变了会导致已添加的主屏图标指向旧址失效，需固定域名。
+
+## 迭代十二：移动端适配修复 + 性能优化（2026-06-05）
+
+**UI 适配**
+- 底部 Tab 栏：去掉顶边框改阴影、`overflow:visible`、加号加白边并上移，修复"边框切到图标"；高度/安全区适配。
+- 账户页移动端：净值 hero 卡 + 账户卡片列表（替代横向溢出的表格），操作按钮内置卡片。
+- 统计页移动端：汇总紧凑三栏；两图由并排改为竖排全宽。
+
+**性能（卡顿主因=大包经 cpolar 慢隧道传输）**
+- ECharts 改按需引入（`utils/echarts.js` 只引 core+Pie+Line+Tooltip/Legend/Grid+Canvas），StatView 包 336KB→171KB(gz)。
+- 后端 `WebMvcConfig.addResourceHandlers`：`/assets/**`（含哈希）强缓存 1 年 immutable，icon/manifest 7 天 → 首次加载后切页/重开走缓存，不再重复下载 JS。
+- HomeView 按 isMobile 只取当前形态所需数据，减少慢隧道往返。
+- 残留：index 包 372KB(gz) 仍含 Element Plus 全量，首次加载偏慢（缓存后只一次）；如需进一步可改 Element Plus 按需自动引入。
